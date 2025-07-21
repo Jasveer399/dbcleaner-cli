@@ -1,0 +1,17 @@
+database:
+  driver: postgres
+  host: localhost
+  port: 5432
+  user: admin
+  password: adminpassword
+  dbname: GoLang_Chat
+  sslmode: disable
+
+cleaner:
+  dry_run: false
+  backup_before: true
+  exclude_tables:
+    - users
+    - sessions
+  include_tables: []
+  truncate_only: true
