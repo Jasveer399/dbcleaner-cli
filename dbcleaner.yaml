@@ -4,4 +4,4 @@ database:
   port: "5432"
   user: admin
   password: adminpassword
-  dbname: GoLang_Chat
+  dbname: Db_Cleaner_Cli

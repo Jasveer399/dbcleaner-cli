@@ -18,6 +18,7 @@ type CleanOptions struct {
 	DryRun   bool
 	Backup   bool
 	Truncate bool
+	Tables   []string
 }
 
 func New(cfg *config.Config) *Cleaner {
@@ -69,7 +70,7 @@ func (c *Cleaner) CleanTables(tables []string, opts CleanOptions) error {
 		if opts.DryRun {
 			count, err := c.db.GetTableRowCount(table)
 			if err != nil {
-				color.Yellow("⚠️  Could not get row count for table %s: %v", table, err)
+				color.Yellow("⚠️ Could not get row count for table %s: %v", table, err)
 				continue
 			}
 
@@ -104,4 +105,20 @@ func (c *Cleaner) CleanTables(tables []string, opts CleanOptions) error {
 	}
 
 	return nil
+}
+
+func (c *Cleaner) BackupDatabase(path string) error {
+	return c.db.BackupDatabase(path)
+}
+
+func (c *Cleaner) TestConnection() error {
+	return c.db.TestConnection()
+}
+
+func (c *Cleaner) GetTableRowCount(table string) (int64, error) {
+	return c.db.GetTableRowCount(table)
+}
+
+func (c *Cleaner) DropTable(table string) error {
+	return c.db.DropTable(table)
 }

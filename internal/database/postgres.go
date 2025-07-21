@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
+	_ "github.com/lib/pq"
 )
 
 type PostgresDB struct {
@@ -18,11 +20,12 @@ func NewPostgresDB(config *ConnectionConfig) *PostgresDB {
 }
 
 func (p *PostgresDB) Connect(ctx context.Context) error {
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", p.config.Host, p.config.Port, p.config.User, p.config.Password, p.config.DBName, p.config.SSLMode)
 
-	if p.config.SSLMode == "" {
-		dsn += " sslmode=disable"
+	sslmode := p.config.SSLMode
+	if sslmode == "" {
+		sslmode = "disable"
 	}
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", p.config.Host, p.config.Port, p.config.User, p.config.Password, p.config.DBName, sslmode)
 
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {

@@ -2,9 +2,12 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/Jasveer399/dbcleaner-cli/internal/cleaner"
 	"github.com/Jasveer399/dbcleaner-cli/internal/config"
 	"github.com/fatih/color"
@@ -77,15 +80,17 @@ func runClean(cmd *cobra.Command, args []string) {
 	}
 
 	if !dryRun {
+
 		prompt := promptui.Prompt{
-			Label:     "Are you sure you want to clean these tables? (yes/no)",
-			IsConfirm: true,
+			Label: "Are you sure you want to clean these tables? (yes/no)",
+		}
+		_, err := runPrompt(prompt)
+		if err != nil {
+			color.Yellow("⚠️  Table cleaning cancelled by user.")
+			return
+
 		}
 
-		if _, err := prompt.Run(); err != nil {
-			color.Yellow("❌ Operation cancelled")
-			return
-		}
 	}
 
 	// Perform cleaning
@@ -95,7 +100,38 @@ func runClean(cmd *cobra.Command, args []string) {
 		Truncate: truncate,
 	}
 
-	if err := cleanerInstance.CleanTables(tables, opts); err != nil {
+	if err != nil {
+		color.Red("❌ Failed to get tables: %v", err)
+		return
+	}
+
+	if len(tables) == 0 {
+		color.Yellow("ℹ️  No tables found in database")
+		return
+	}
+
+	color.Cyan("📋 Found %d tables:", len(tables))
+	for _, t := range tables {
+		fmt.Printf("  - %s\n", t)
+	}
+
+	var selectedTables []string
+	prompt := &survey.MultiSelect{
+		Message: "Select tables to clean:",
+		Options: tables,
+	}
+
+	if err := survey.AskOne(prompt, &selectedTables); err != nil {
+		color.Red("❌ Table selection cancelled: %v", err)
+		return
+	}
+
+	if len(selectedTables) == 0 {
+		color.Yellow("⚠️  No tables selected, exiting.")
+		return
+	}
+
+	if err := cleanerInstance.CleanTables(selectedTables, opts); err != nil {
 		color.Red("❌ Cleaning failed: %v", err)
 		return
 	}
@@ -104,5 +140,24 @@ func runClean(cmd *cobra.Command, args []string) {
 		color.Green("✅ Dry run completed successfully")
 	} else {
 		color.Green("✅ Database cleaned successfully")
+	}
+}
+
+func runPrompt(prompt promptui.Prompt) (string, error) {
+	for {
+		val, err := prompt.Run()
+		if err != nil {
+			return "", err // Prompt was cancelled with Ctrl+C or similar
+		}
+
+		val = strings.ToLower(val)
+
+		if val == "yes" {
+			return val, nil
+		} else if val == "no" {
+			return "", errors.New("operation cancelled")
+		} else {
+			color.Red("❌ Invalid input: %s, expected 'yes' or 'no'", val)
+		}
 	}
 }
